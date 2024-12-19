@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"go_recipes/models"
 	"go_recipes/utils"
 	"os"
 
@@ -55,4 +56,55 @@ func DbConnect(envFile string) *MySQLRepository {
 	}
 
 	return &repo
+}
+
+func Migrate() error {
+	repo := DbConnect(utils.GetEnvFile().Name)
+	return repo.db.Transaction(func(tx *gorm.DB) error {
+		// User table
+		if err := checkUserTable(tx); err != nil {
+			logger.Sugar.Fatal(err)
+			return err
+		}
+
+		tableNames := map[string]interface{}{
+			"recipe":     models.Recipe{},
+			"quantity":   models.Quantity{},
+			"ingredient": models.Ingredient{},
+			"dish":       models.Dish{},
+			"category":   models.Category{},
+		}
+
+		for name, model := range tableNames {
+			if err := checkTable(tx, name, &model); err != nil {
+				logger.Sugar.Fatal(err)
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func checkTable(db *gorm.DB, tableName string, model interface{}) error {
+	if !db.Migrator().HasTable(tableName) {
+		return db.AutoMigrate(&model)
+	}
+	return nil
+}
+
+func checkUserTable(db *gorm.DB) error {
+	var user = &models.User{}
+	if db.Migrator().HasTable("users") {
+		// if table exists, check potential missing columns
+		if !db.Migrator().HasColumn(user, "dishes") {
+			return db.Migrator().AddColumn(user, "dishes")
+		}
+		if !db.Migrator().HasColumn(user, "favorites") {
+			return db.Migrator().AddColumn(user, "favorites")
+		}
+		return nil
+	}
+
+	// if table doesn't exist, create it
+	return db.Migrator().AutoMigrate(user)
 }
