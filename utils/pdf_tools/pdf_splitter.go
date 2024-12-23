@@ -12,7 +12,7 @@ type PdfSplitter struct {
 	paths       PdfToImport
 }
 
-func NewSplitter(XDecimation uint16, YDecimation uint16, pdfPaths PdfToImport) PdfSplitter {
+func newSplitter(XDecimation uint16, YDecimation uint16, pdfPaths PdfToImport) PdfSplitter {
 	return PdfSplitter{
 		cmd:         "mutool",
 		arg:         "poster",

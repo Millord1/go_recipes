@@ -15,7 +15,7 @@ type PdfCropper struct {
 	paths        PdfToImport
 }
 
-func NewCropper(left int16, top int16, right int16, bottom int16, pdfPaths PdfToImport) PdfCropper {
+func newCropper(left int16, top int16, right int16, bottom int16, pdfPaths PdfToImport) PdfCropper {
 	return PdfCropper{
 		cmd:          "pdfcrop",
 		arg:          "--margins",
