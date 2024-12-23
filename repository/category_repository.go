@@ -6,12 +6,6 @@ type CategoryRepository struct {
 	Mysql MySQLRepository
 }
 
-type CategoryInterface interface {
-	Save(cat models.Category) error
-	Update(cat *models.Category) error
-	FindById(id uint) (*models.Category, error)
-}
-
 func (repo CategoryRepository) Update(cat *models.Category) error {
 	if err := repo.Mysql.db.Model(&cat).Updates(cat).Error; err != nil {
 		logger.Sugar.Error(err)

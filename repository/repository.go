@@ -20,6 +20,12 @@ type MySQLRepository struct {
 	db       *gorm.DB
 }
 
+type SQLInterface interface {
+	Save(model interface{}) error
+	Update(model *interface{}) error
+	FindById(id uint) (*interface{}, error)
+}
+
 var logger utils.Logger = utils.NewLogger("repository.log")
 
 func getMySQLRepo() MySQLRepository {

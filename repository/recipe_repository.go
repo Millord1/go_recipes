@@ -6,12 +6,6 @@ type RecipeRepository struct {
 	Mysql MySQLRepository
 }
 
-type RecipeInterface interface {
-	Save(recipe models.Recipe) error
-	Update(recipe *models.Recipe) error
-	FindById(id uint) (*models.Recipe, error)
-}
-
 func (repo RecipeRepository) Update(recipe *models.Recipe) error {
 	if err := repo.Mysql.db.Model(&recipe).Updates(recipe).Error; err != nil {
 		logger.Sugar.Error(err)

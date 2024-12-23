@@ -6,12 +6,6 @@ type QuantityRepository struct {
 	Mysql MySQLRepository
 }
 
-type QuantityInterface interface {
-	Save(quant models.Quantity) error
-	Update(quant *models.Quantity) error
-	FindById(id uint) (*models.Quantity, error)
-}
-
 func (repo QuantityRepository) Update(quant *models.Quantity) error {
 	if err := repo.Mysql.db.Model(&quant).Updates(quant).Error; err != nil {
 		logger.Sugar.Error(err)

@@ -6,12 +6,6 @@ type DishRepository struct {
 	Mysql MySQLRepository
 }
 
-type DishInterface interface {
-	Save(dish models.Dish) error
-	Update(dish *models.Dish) error
-	FindById(id uint) (*models.Dish, error)
-}
-
 func (repo DishRepository) Update(dish *models.Dish) error {
 	if err := repo.Mysql.db.Model(&dish).Updates(dish).Error; err != nil {
 		logger.Sugar.Error(err)

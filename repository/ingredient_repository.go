@@ -6,12 +6,6 @@ type IngRepository struct {
 	Mysql MySQLRepository
 }
 
-type IngInterface interface {
-	Save(ing models.Ingredient) error
-	Update(ing *models.Ingredient) error
-	FindById(id uint) (*models.Ingredient, error)
-}
-
 func (repo IngRepository) Update(ing *models.Ingredient) error {
 	if err := repo.Mysql.db.Model(&ing).Updates(ing).Error; err != nil {
 		logger.Sugar.Error(err)

@@ -1,16 +1,33 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-	"go_recipes/repository"
 	"log"
+	"os/exec"
 )
 
 func main() {
-	err := repository.Migrate()
-	if err != nil {
-		log.Fatalln(err)
+
+	cmd := exec.Command("echo", "hello", "world")
+	if errors.Is(cmd.Err, exec.ErrDot) {
+		cmd.Err = nil
 	}
 
-	fmt.Println("is it good ?")
+	/* 	if err := cmd.Run(); err != nil {
+		log.Fatalln(err)
+	} */
+	stdout, outErr := cmd.Output()
+	if outErr != nil {
+		log.Fatalln(outErr)
+	}
+
+	fmt.Println(string(stdout))
+
+	/*
+		 	err := repository.Migrate()
+			if err != nil {
+				log.Fatalln(err)
+			}
+	*/
 }
