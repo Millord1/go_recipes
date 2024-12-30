@@ -3,10 +3,22 @@ package pdftools
 import "strconv"
 
 type PdfToImport struct {
-	InFileName  string
-	OutFileName string
-	InputPath   string
-	OutputPath  string
+	FileName  string
+	Extension string
+	Path      string
+}
+
+func (pdf PdfToImport) getPathAndName() string {
+	return pdf.Path + pdf.FileName
+}
+
+func (pdf PdfToImport) getFullFileName() string {
+	return pdf.Path + pdf.FileName + pdf.Extension
+}
+
+func (pdf PdfToImport) ReadFile() error {
+	reader := newReader(pdf)
+	return reader.read()
 }
 
 func (pdf PdfToImport) CropFile(left int16, top int16, right int16, bottom int16) error {

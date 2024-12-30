@@ -1,11 +1,12 @@
 package pdftools
 
 import (
+	"errors"
 	"os/exec"
 	"strings"
 )
 
-type PdfCropper struct {
+type pdfCropper struct {
 	cmd          string
 	arg          string
 	MarginLeft   int16
@@ -15,8 +16,8 @@ type PdfCropper struct {
 	paths        PdfToImport
 }
 
-func newCropper(left int16, top int16, right int16, bottom int16, pdfPaths PdfToImport) PdfCropper {
-	return PdfCropper{
+func newCropper(left int16, top int16, right int16, bottom int16, pdfPaths PdfToImport) pdfCropper {
+	return pdfCropper{
 		cmd:          "pdfcrop",
 		arg:          "--margins",
 		MarginLeft:   left,
@@ -27,15 +28,23 @@ func newCropper(left int16, top int16, right int16, bottom int16, pdfPaths PdfTo
 	}
 }
 
-func (cropper PdfCropper) crop() error {
+func (cropper pdfCropper) crop() error {
+	// Crop pdf file, depending of margins
+	// useful to split and read pdf
+
 	var sb strings.Builder
-	sb.WriteString(intToString(cropper.MarginLeft))
-	sb.WriteString(intToString(cropper.MarginTop))
-	sb.WriteString(intToString(cropper.MarginRight))
+	sb.WriteString(intToString(cropper.MarginLeft) + " ")
+	sb.WriteString(intToString(cropper.MarginTop) + " ")
+	sb.WriteString(intToString(cropper.MarginRight) + " ")
 	sb.WriteString(intToString(cropper.MarginBottom))
 
-	cmd := exec.Command(cropper.cmd, cropper.cmd, sb.String(),
-		cropper.paths.InFileName, cropper.paths.OutFileName)
+	cmd := exec.Command(cropper.cmd, cropper.arg, sb.String(),
+		cropper.paths.getFullFileName(), cropper.paths.getFullFileName())
 
-	return cmd.Run()
+	stdout, outErr := cmd.CombinedOutput()
+
+	if outErr != nil {
+		return errors.New(string(stdout))
+	}
+	return nil
 }

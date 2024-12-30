@@ -9,7 +9,10 @@ RUN go mod download
 RUN apt-get update && apt-get install -y --no-install-recommends \
     mutool \
     texlive-extra-utils \
+    poppler-utils \
     && rm -rf /var/lib/apt/lists/*
+
+RUN apt autoremove
 
 COPY . ./
 RUN CGO_ENABLED=0 GOOS=linux go build -o /docker-go-users
