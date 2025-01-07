@@ -1,6 +1,8 @@
 package repository
 
-import "go_recipes/models"
+import (
+	"go_recipes/models"
+)
 
 type QuantityRepository struct {
 	Mysql MySQLRepository
@@ -29,4 +31,15 @@ func (repo QuantityRepository) FindById(id uint) (*models.Quantity, error) {
 		return nil, err
 	}
 	return &quant, nil
+}
+
+func (repo QuantityRepository) GetOrCreate(quantity models.Quantity) (*models.Quantity, error) {
+	var qtt models.Quantity
+	err := repo.Mysql.db.FirstOrCreate(&qtt, quantity).Error
+	if err != nil {
+		logger.Sugar.Error(err)
+		return nil, err
+	}
+
+	return &qtt, nil
 }

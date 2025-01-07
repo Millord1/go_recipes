@@ -1,11 +1,12 @@
 package pdftools
 
 import (
-	"fmt"
 	"go_recipes/models"
+	"go_recipes/repository"
 	"go_recipes/utils"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -23,10 +24,17 @@ type pdfReader struct {
 	stepsToSkip       []string
 }
 
+// textract (pdf reader)
 var textractSession *textract.Textract
+
+// logger
 var logger utils.Logger = utils.NewLogger("reader.log")
 
+// db connection
+var sql *repository.MySQLRepository = repository.DbConnect(utils.GetEnvFile().Name)
+
 func init() {
+	// start Textract session
 	envFile := utils.GetEnvFile().Name
 	if err := godotenv.Load(envFile); err != nil {
 		panic(err)
@@ -49,14 +57,28 @@ func newReader(ingPages []uint16, stepPages []uint16, ingtoSkip []string, pdfPat
 
 func (reader pdfReader) read() error {
 
-	reader.readQuantities()
+	dish, err := reader.readDish()
+	if err != nil {
+		return err
+	}
+	reader.readQuantities(dish)
+	// TODO read steps
 	return nil
 
 }
 
-func (reader pdfReader) readQuantities() {
+func (reader pdfReader) readDish() (*models.Dish, error) {
+	dishRepo := repository.DishRepository{Mysql: *sql}
+	// User filename as Dish name
+	dish, err := dishRepo.GetOrCreate(reader.paths.FileName)
+	if err != nil {
+		return nil, err
+	}
+	return dish, nil
+}
+
+func (reader pdfReader) readQuantities(dish *models.Dish) {
 	// read all pages with ingredients
-	var quantities []models.Quantity
 	var wg sync.WaitGroup
 	for _, page := range reader.ingredientsPages {
 
@@ -64,12 +86,14 @@ func (reader pdfReader) readQuantities() {
 			strconv.FormatInt(int64(page), 10) + reader.paths.Extension
 
 		wg.Add(1)
-		go reader.getQuantities(fileName, &quantities)
+		go reader.getQuantities(fileName, dish)
 	}
 	wg.Wait()
+	wg.Done()
 }
 
-func (reader pdfReader) getQuantities(fileName string, quantities *[]models.Quantity) error {
+func (reader pdfReader) getQuantities(fileName string, dish *models.Dish) error {
+
 	resp, err := openFile(fileName)
 	if err != nil {
 		logger.Sugar.Fatal(err)
@@ -84,19 +108,64 @@ func (reader pdfReader) getQuantities(fileName string, quantities *[]models.Quan
 			// too specific, must be a parameter
 			continue
 		}
+
+		if lines%2 == 0 {
+			// skip lines with quantities to create directly ingredients + quantity with i+1
+			lines++
+			continue
+		}
+
 		if *resp.Blocks[i].BlockType == "LINE" {
 			if isUselessData(resp.Blocks[i].Text, reader.ingredientstoSkip) {
 				continue
 			}
 
-			// TODO sort ingredients and quantities and create entities
+			// get or create ing
+			ingRepo := repository.IngRepository{Mysql: *sql}
+			ingDb, err := ingRepo.GetOrCreate(*resp.Blocks[i].Text)
+			if err != nil {
+				return err
+			}
 
-			fmt.Println(*resp.Blocks[i].Text)
+			qtt, err := getQuantityEntity(resp.Blocks[i+1].Text, dish.ID, ingDb.ID)
+			if err != nil {
+				return err
+			}
+
+			// get or create qtt
+			qttRepo := repository.QuantityRepository{Mysql: *sql}
+			_, qttErr := qttRepo.GetOrCreate(qtt)
+			if qttErr != nil {
+				return qttErr
+			}
+
+			// push qtt (with ing) in dish
+			dish.Quantities = append(dish.Quantities, qtt)
+			/* fmt.Println(*resp.Blocks[i].Text) */
 			lines++
 		}
+
 	}
 
 	return nil
+}
+
+func getQuantityEntity(data *string, dishId uint, ingId uint) (models.Quantity, error) {
+	var entity models.Quantity
+	qtt := strings.Fields(*data)
+	qttInt, err := strconv.Atoi(qtt[0])
+	if err != nil {
+		return entity, err
+	}
+
+	entity = models.Quantity{
+		Num:          uint16(qttInt),
+		Unit:         qtt[1],
+		DishID:       dishId,
+		IngredientID: ingId,
+	}
+
+	return entity, nil
 }
 
 func openFile(fileName string) (*textract.DetectDocumentTextOutput, error) {

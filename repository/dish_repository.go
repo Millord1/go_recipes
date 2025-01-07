@@ -30,3 +30,14 @@ func (repo DishRepository) FindById(id uint) (*models.Dish, error) {
 	}
 	return &dish, nil
 }
+
+func (repo DishRepository) GetOrCreate(name string) (*models.Dish, error) {
+	var dish models.Dish
+	err := repo.Mysql.db.FirstOrCreate(&dish, models.Dish{Name: name}).Error
+	if err != nil {
+		logger.Sugar.Error(err)
+		return nil, err
+	}
+
+	return &dish, nil
+}

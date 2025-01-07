@@ -1,33 +1,43 @@
 package main
 
 import (
-	pdftools "go_recipes/utils/pdf_tools"
+	"go_recipes/repository"
+	"go_recipes/utils"
 	"log"
 )
 
 func main() {
 
-	pdf := pdftools.PdfToImport{
+	sql := repository.DbConnect(utils.GetEnvFile().Name)
+	ing := repository.IngRepository{Mysql: *sql}
+	test, err := ing.GetOrCreate("test")
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	log.Printf("%+v\n", test)
+
+	/* 	pdf := pdftools.PdfToImport{
 		FileName:  "test1",
 		Extension: ".pdf",
 		Path:      "./assets/",
-	}
+	} */
 
 	/* 	err := pdf.CropFile(0, 0, -50, 0)
 	   	if err != nil {
 	   		log.Fatalln(err)
 	   	} */
-	useless := []string{
-		"A ajouter vous-meme",
-		"* Conserver au réfrigérateur",
-		"Valeurs nutritionnelles",
-		"Par portion Pour 100 g",
-	}
+	/* 	useless := []string{
+	   		"A ajouter vous-meme",
+	   		"* Conserver au réfrigérateur",
+	   		"Valeurs nutritionnelles",
+	   		"Par portion Pour 100 g",
+	   	}
 
-	readErr := pdf.ReadFile([]uint16{1}, []uint16{2, 3, 4, 6, 7, 8}, useless)
-	if readErr != nil {
-		log.Fatalln(readErr)
-	}
+	   	readErr := pdf.ReadFile([]uint16{1}, []uint16{2, 3, 4, 6, 7, 8}, useless)
+	   	if readErr != nil {
+	   		log.Fatalln(readErr)
+	   	} */
 
 	/* 	splitErr := pdf.SplitFile(4, 2)
 	   	if splitErr != nil {

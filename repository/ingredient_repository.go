@@ -30,3 +30,14 @@ func (repo IngRepository) FindById(id uint) (*models.Ingredient, error) {
 	}
 	return &ing, nil
 }
+
+func (repo IngRepository) GetOrCreate(name string) (*models.Ingredient, error) {
+	var ing models.Ingredient
+	err := repo.Mysql.db.FirstOrCreate(&ing, models.Ingredient{Name: name}).Error
+	if err != nil {
+		logger.Sugar.Error(err)
+		return nil, err
+	}
+
+	return &ing, nil
+}
