@@ -46,12 +46,13 @@ func init() {
 	})))
 }
 
-func newReader(ingPages []uint16, stepPages []uint16, ingtoSkip []string, pdfPaths PdfToImport) pdfReader {
+func newReader(ingPages []uint16, stepPages []uint16, ingtoSkip []string, stepToSkip []string, pdfPaths PdfToImport) pdfReader {
 	return pdfReader{
 		paths:             pdfPaths,
 		ingredientsPages:  ingPages,
 		stepsPages:        stepPages,
 		ingredientstoSkip: ingtoSkip,
+		stepsToSkip:       stepToSkip,
 	}
 }
 
@@ -61,8 +62,16 @@ func (reader pdfReader) read() error {
 	if err != nil {
 		return err
 	}
+
 	reader.readQuantities(dish)
-	// TODO read steps
+
+	reader.readSteps(dish)
+
+	dishRepo := repository.DishRepository{Mysql: *sql}
+	updateErr := dishRepo.Update(dish)
+	if updateErr != nil {
+		return updateErr
+	}
 	return nil
 
 }
@@ -82,14 +91,77 @@ func (reader pdfReader) readQuantities(dish *models.Dish) {
 	var wg sync.WaitGroup
 	for _, page := range reader.ingredientsPages {
 
-		fileName := reader.paths.Path + reader.paths.FileName + "-" +
-			strconv.FormatInt(int64(page), 10) + reader.paths.Extension
+		fileName := reader.getPageName(page)
 
 		wg.Add(1)
-		go reader.getQuantities(fileName, dish)
+		go func() {
+			reader.getQuantities(fileName, dish)
+			defer wg.Done()
+		}()
 	}
 	wg.Wait()
-	wg.Done()
+}
+
+func (reader pdfReader) readSteps(dish *models.Dish) {
+	var wg sync.WaitGroup
+	for _, page := range reader.stepsPages {
+		fileName := reader.getPageName(page)
+		wg.Add(1)
+		go func() {
+			reader.getSteps(fileName, dish)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+}
+
+func (reader pdfReader) getSteps(fileName string, dish *models.Dish) error {
+	resp, err := openFile(fileName)
+
+	if err != nil {
+		logger.Sugar.Fatal(err)
+		return err
+	}
+
+	var sb strings.Builder
+	var order int
+	var title string
+
+	for i := 0; i < len(resp.Blocks); i++ {
+		if *resp.Blocks[i].BlockType == "LINE" {
+
+			if i == 1 {
+				var convErr error
+				order, convErr = strconv.Atoi(*resp.Blocks[i].Text)
+				if convErr != nil {
+					logger.Sugar.Error(err)
+					return err
+				}
+				continue
+			}
+
+			if i == 2 {
+				title = *resp.Blocks[i].Text
+				continue
+			}
+
+			if isUselessData(*resp.Blocks[i].Text, reader.stepsToSkip) {
+				continue
+			}
+			// All the remaining lines are just content, so we concatenate them
+			sb.WriteString(*resp.Blocks[i].Text)
+		}
+	}
+
+	step := models.Step{
+		Order:   order,
+		Title:   title,
+		Content: sb.String(),
+	}
+
+	dish.Steps = append(dish.Steps, step)
+
+	return nil
 }
 
 func (reader pdfReader) getQuantities(fileName string, dish *models.Dish) error {
@@ -97,6 +169,7 @@ func (reader pdfReader) getQuantities(fileName string, dish *models.Dish) error 
 	resp, err := openFile(fileName)
 	if err != nil {
 		logger.Sugar.Fatal(err)
+		return err
 	}
 
 	// count read lines
@@ -116,13 +189,15 @@ func (reader pdfReader) getQuantities(fileName string, dish *models.Dish) error 
 		}
 
 		if *resp.Blocks[i].BlockType == "LINE" {
-			if isUselessData(resp.Blocks[i].Text, reader.ingredientstoSkip) {
+			if isUselessData(*resp.Blocks[i].Text, reader.ingredientstoSkip) {
 				continue
 			}
 
 			// get or create ing
 			ingRepo := repository.IngRepository{Mysql: *sql}
-			ingDb, err := ingRepo.GetOrCreate(*resp.Blocks[i].Text)
+
+			ingName := strings.Replace(*resp.Blocks[i].Text, "*", "", -1)
+			ingDb, err := ingRepo.GetOrCreate(ingName)
 			if err != nil {
 				return err
 			}
@@ -130,13 +205,6 @@ func (reader pdfReader) getQuantities(fileName string, dish *models.Dish) error 
 			qtt, err := getQuantityEntity(resp.Blocks[i+1].Text, dish.ID, ingDb.ID)
 			if err != nil {
 				return err
-			}
-
-			// get or create qtt
-			qttRepo := repository.QuantityRepository{Mysql: *sql}
-			_, qttErr := qttRepo.GetOrCreate(qtt)
-			if qttErr != nil {
-				return qttErr
 			}
 
 			// push qtt (with ing) in dish
@@ -188,10 +256,15 @@ func openFile(fileName string) (*textract.DetectDocumentTextOutput, error) {
 	return resp, nil
 }
 
-func isUselessData(input *string, uselesses []string) bool {
+func (reader pdfReader) getPageName(page uint16) string {
+	return reader.paths.Path + reader.paths.FileName + "-" +
+		strconv.FormatInt(int64(page), 10) + reader.paths.Extension
+}
+
+func isUselessData(input string, uselesses []string) bool {
 	// skip useless data from pdf
 	for _, v := range uselesses {
-		if v == *input {
+		if v == input {
 			return true
 		}
 	}

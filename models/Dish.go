@@ -14,4 +14,5 @@ type Dish struct {
 	Categories  []*Category `gorm:"many2many:dish_categories"`
 	Recipes     []*Recipe
 	Quantities  []Quantity
+	Steps       []Step
 }

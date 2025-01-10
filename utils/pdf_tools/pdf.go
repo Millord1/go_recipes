@@ -16,8 +16,8 @@ func (pdf PdfToImport) getFullFileName() string {
 	return pdf.Path + pdf.FileName + pdf.Extension
 }
 
-func (pdf PdfToImport) ReadFile(ingPages []uint16, stepPages []uint16, ingToSkip []string) error {
-	reader := newReader(ingPages, stepPages, ingToSkip, pdf)
+func (pdf PdfToImport) ReadFile(ingPages []uint16, stepPages []uint16, ingToSkip []string, stepToSkipe []string) error {
+	reader := newReader(ingPages, stepPages, ingToSkip, stepToSkipe, pdf)
 	return reader.read()
 }
 

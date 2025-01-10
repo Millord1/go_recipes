@@ -1,6 +1,8 @@
 package repository
 
-import "go_recipes/models"
+import (
+	"go_recipes/models"
+)
 
 type DishRepository struct {
 	Mysql MySQLRepository
@@ -30,6 +32,29 @@ func (repo DishRepository) FindById(id uint) (*models.Dish, error) {
 	}
 	return &dish, nil
 }
+
+/* func (repo DishRepository) GetWithIngredients(id uint) (*models.Dish, error) {
+var dish models.Dish
+
+res := repo.Mysql.db.Where("dishes.id = ?", id).Joins(
+	"INNER JOIN quantities ON quantities.dish_id = dishes.id").Joins(
+	"INNER JOIN ingredients ON ingredients.id = quantities.ingredient_id").Find(dish) */
+
+/* res := repo.Mysql.db.Where("ID = ?", id).Preload("Quantities.Ingredients").Find(&dish) */
+// dishes.name, quantities.num, quantities.unit, ingredients.name
+/* 	res := repo.Mysql.db.Raw(`SELECT * FROM dishes
+LEFT JOIN quantities ON quantities.dish_id = dishes.id
+LEFT JOIN ingredients ON ingredients.id = quantities.ingredient_id
+WHERE dishes.id = ?`, id).Scan(dish) */
+/* 	if res.Error != nil {
+		logger.Sugar.Error(res.Error)
+		return nil, res.Error
+	}
+	testJson, _ := json.Marshal(dish)
+	fmt.Println(string(testJson))
+
+	return &dish, nil
+} */
 
 func (repo DishRepository) GetOrCreate(name string) (*models.Dish, error) {
 	var dish models.Dish

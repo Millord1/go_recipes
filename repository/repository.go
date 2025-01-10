@@ -28,6 +28,14 @@ type SQLInterface interface {
 
 var logger utils.Logger = utils.NewLogger("repository.log")
 
+func init() {
+	migrErr := Migrate()
+	if migrErr != nil {
+		logger.Sugar.Panic(migrErr)
+		panic(migrErr)
+	}
+}
+
 func getMySQLRepo() MySQLRepository {
 	return MySQLRepository{
 		User:     os.Getenv("DB_USER"),
@@ -75,6 +83,7 @@ func Migrate() error {
 			"ingredients": models.Ingredient{},
 			"dishes":      models.Dish{},
 			"categories":  models.Category{},
+			"steps":       models.Step{},
 		}
 
 		for name, model := range tableNames {
