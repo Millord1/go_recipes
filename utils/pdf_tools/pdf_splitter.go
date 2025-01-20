@@ -37,13 +37,21 @@ func (splitter pdfSplitter) split() error {
 }
 
 func (splitter pdfSplitter) splitPdf() error {
+
+	// create subDir to separate all files properly
+	dir, err := splitter.paths.createDir(splitter.paths.FileName)
+	if err != nil {
+		logger.Sugar.Panic(err)
+		return err
+	}
+
 	// split pdf by height and width, depending of XDecimation and YDecimation
 	// generate pages into single file pdf
 	fileName := splitter.paths.getFullFileName()
 	cmd := exec.Command(splitter.cmd, splitter.arg,
 		"-x "+intToString(int16(splitter.XDecimation)),
 		"-y "+intToString(int16(splitter.YDecimation)),
-		fileName, fileName)
+		fileName, dir)
 
 	stdOut, err := cmd.CombinedOutput()
 	if err != nil {

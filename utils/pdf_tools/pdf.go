@@ -1,6 +1,12 @@
 package pdftools
 
-import "strconv"
+import (
+	"errors"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"strconv"
+)
 
 type PdfToImport struct {
 	FileName  string
@@ -34,4 +40,53 @@ func (pdf PdfToImport) SplitFile(XDecimation uint16, YDecimation uint16) error {
 
 func intToString(num int16) string {
 	return strconv.FormatInt(int64(num), 10)
+}
+
+func GetAbsPath(path string) (string, error) {
+	// get absolute path
+	var err error
+	if !filepath.IsAbs(path) {
+		path, err = filepath.Abs(path)
+	}
+
+	if err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
+func (pdf PdfToImport) createDir(dirName string) (string, error) {
+
+	dirPath, err := GetAbsPath(dirName)
+	if err != nil {
+		logger.Sugar.Panic(err)
+		return "", err
+	}
+
+	exists, err := dirExists(dirPath)
+	if err != nil {
+		logger.Sugar.Panic(err)
+		return "", err
+	}
+
+	if !exists {
+		err := os.Mkdir(dirPath, os.ModePerm)
+		if err != nil {
+			logger.Sugar.Panic(err)
+			return "", err
+		}
+	}
+
+	return dirPath, nil
+}
+
+func dirExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if errors.Is(err, fs.ErrNotExist) {
+		return false, nil
+	}
+	return false, err
 }

@@ -1,11 +1,26 @@
 package main
 
 import (
-	pdftools "go_recipes/utils/pdf_tools"
+	"go_recipes/services"
 	"log"
 )
 
 func main() {
+	/*
+		path, pathErr := filepath.Abs("./assets/")
+		if pathErr != nil {
+			log.Fatalln(pathErr)
+		}
+
+		fmt.Println(path) */
+
+	hfService := services.NewHelloFreshPdf("assets")
+	_, err := hfService.GetAllFilesToRead()
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	/* 	sql := repository.DbConnect(utils.GetEnvFile().Name)
 	   	dishRepo := repository.DishRepository{Mysql: *sql}
 	   	_, err := dishRepo.GetWithIngredients(1)
@@ -26,29 +41,29 @@ func main() {
 	   		log.Fatalln(err)
 	   	} */
 
-	pdf := pdftools.PdfToImport{
-		FileName:  "test1",
-		Extension: ".pdf",
-		Path:      "./assets/",
-	}
+	/* 	pdf := pdftools.PdfToImport{
+	   		FileName:  "test1",
+	   		Extension: ".pdf",
+	   		Path:      "./assets/",
+	   	}
 
-	useless := []string{
-		"A ajouter vous-meme",
-		"* Conserver au réfrigérateur",
-		"Valeurs nutritionnelles",
-		"Par portion Pour 100 g",
-	}
+	   	useless := []string{
+	   		"A ajouter vous-meme",
+	   		"* Conserver au réfrigérateur",
+	   		"Valeurs nutritionnelles",
+	   		"Par portion Pour 100 g",
+	   	}
 
-	uselessStep := []string{
-		"LETRI",
-		"+ FACILE",
-		"A vos fourchettes !",
-	}
+	   	uselessStep := []string{
+	   		"LETRI",
+	   		"+ FACILE",
+	   		"A vos fourchettes !",
+	   	}
 
-	readErr := pdf.ReadFile([]uint16{1}, []uint16{2, 3, 4, 6, 7, 8}, useless, uselessStep)
-	if readErr != nil {
-		log.Fatalln(readErr)
-	}
+	   	readErr := pdf.ReadFile([]uint16{1}, []uint16{2, 3, 4, 6, 7, 8}, useless, uselessStep)
+	   	if readErr != nil {
+	   		log.Fatalln(readErr)
+	   	} */
 
 	/* 	splitErr := pdf.SplitFile(4, 2)
 	   	if splitErr != nil {
